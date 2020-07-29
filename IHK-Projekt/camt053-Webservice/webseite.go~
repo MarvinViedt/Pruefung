@@ -1,0 +1,51 @@
+package main
+
+const webseite = `
+	<html>
+		<center>
+		<head>
+			<center>
+			<title>CAMT053-Webservice</title>
+			<h1 style = "color:Black ; font-family:Arial">CAMT053-Webservice</h1>
+			</center>
+		</head>
+		<body>
+			<center>
+			<form class="text-center" action="/CAMT053" method="post">
+				<fieldset style="border: 1px darkmagenter solid">
+					<legend tyle="color:darkmagenta; font-family:arial">Bitte die XML Datei angeben:</legend>
+					<label style="font-family:arial; font-size:83%" for="XMLFile">XML Datei:</label>
+						<input id="XMLFile" name="XML Datei" type="text" placeholder="Dateiname">
+				</filedset>
+				<br>
+				<button type="submit" name="Einlesen" formaction="/Camt053/XML-View"
+                                        style="float: center;
+                                        width: 200px;
+                                        height: 40px;
+                                        font-weight: bold;
+                                        font-size:115%;
+                                        color: darkmagenta"> Einlesen
+				</button>
+			</form>
+			</center>
+		</body>
+		</center>
+	</html>
+`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

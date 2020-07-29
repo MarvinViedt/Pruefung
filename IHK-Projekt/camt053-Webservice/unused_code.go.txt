@@ -1,0 +1,203 @@
+#########################################################################
+
+Diese Datei beinhaltet unbenutzter Code für Dokumentarische Zwecke
+
+#########################################################################
+
+	//"encoding/xml"
+	//"io"
+	//"strings"
+	//"io/ioutil"
+	//"github.com/antchfx/xpath"
+
+
+        /*
+        getxmlcontent, _ := ioutil.ReadFile(filename)
+
+        xmlcontent := string(getxmlcontent)
+
+        readxmlcontent, err := xmlquery.Parse(strings.NewReader(xmlcontent))
+        if err != nil {
+                log.Fatal(err)
+        }
+
+        //BkToCstmrStmt := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt")
+
+        //content_text := BkToCstmrStmt.SelectElements("GrpHdr")
+
+        /*
+        for _, attr := range content_text.Attr {
+
+                fmt.Println("--- Here ---")
+                fmt.Println(attr)
+                fmt.Println("--- End ---")
+
+        }
+        */
+
+
+
+ /*
+        expr, err := xpath.Compile("sum(//BkToCstmrStmt)")
+        if err != nil {
+                panic(err)
+        }
+        fmt.Printf("%s", expr.Evaluate(xmlquery.CreateXPathNavigator(parsexmlcontent)).(float64))
+
+        BkToCstmrStmt := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt")
+        for content :=  BkToCstmrStmt; content != nil; content = content.NextSibling {
+                fmt.Println("%s", content)
+
+        }
+
+        for content := getxmlcontent.NextSibling; content != nil; content = getxmlcontent.NextSibling {
+                fmt.Println("Test")
+                fmt.Println(content)
+        }
+
+        for content := BkToCstmrStmt.NextSibling; content != nil; content = content.NextSibling {
+                fmt.Println("Test")
+                fmt.Println(content)
+        }
+        */
+
+
+
+        /*
+        grphdr := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt/GrpHdr")
+        MsgRcpt := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt/GrpHdr/MsgRcpt")
+        MsgPgntn := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt/GrpHdr/MsgPgntn")
+        PstlAdr := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt/GrpHdr/MsgRcpt/PstlAdr")
+        */
+        /*
+        if content = grphdr.SelectElement("MsgId"); content != nil {
+                fmt.Printf("MsgId: %s\n", content.InnerText())
+        }
+        if content = grphdr.SelectElement("CreDtTm"); content != nil {
+                fmt.Printf("CreDtTm: %s\n", content.InnerText())
+        }
+        if content = MsgRcpt.SelectElement("Nm"); content != nil {
+                fmt.Printf("Nm: %s\n", content.InnerText())
+        }
+        if content = PstlAdr.SelectElement("AdrLine"); content != nil {
+                fmt.Printf("AdrLine: %s\n", content.InnerText())
+        }
+        if content = PstlAdr.SelectElement("AdrLine[2]"); content != nil {
+                fmt.Printf("AdrLine: %s\n", content.InnerText())
+        }
+        if content = MsgPgntn.SelectElement("PgNb"); content != nil {
+                fmt.Printf("PgNb: %s\n", content.InnerText())
+        }
+        if content = MsgPgntn.SelectElement("LastPgInd"); content != nil {
+                fmt.Printf("LastPgind: %s\n", content.InnerText())
+        }
+        */
+
+        /*
+        BkToCstmrStmt := xmlquery.FindOne(readxmlcontent, "//BkToCstmrStmt")
+        if content := BkToCstmrStmt.Find( {
+                fmt.Printf("LastPgind: %s\n", content.InnerText())
+        }
+        */
+        /*
+        for i, content := range xmlquery.Find(readxmlcontent, "//BkToCstmrStmt/GrpHdr") {
+                fmt.Printf("%d%s\n", i, content.InnerText())
+        }
+        for i, content := range xmlquery.Find(readxmlcontent, "//BkToCstmrStmt/Stmt") {
+                fmt.Printf("%d%s\n", i, content.InnerText())
+        }
+        */
+
+        /*
+        readxmlcontent := strings.NewReader(xmlcontent)
+        decodexmlcontent := xml.NewDecoder(readxmlcontent)
+
+        for ;; {
+                tok, err := decodexmlcontent.Token()
+                if err != nil {
+                        if err != io.EOF {
+                                log.Fatal(err)
+                        }
+                        break
+                }
+
+                //fmt.Printf("%s\n", tok)
+
+                //restok := strings.ReplaceAll(tok, "urn:iso:std:iso:20022:tech:xsd:camt.053.001.02", " ")
+                fmt.Printf("%s\n", tok)
+        }
+        */
+
+
+
+194 func printtagvalues(xmlcontent *xmlquery.Node) {
+195
+196         for ; xmlcontent != nil; xmlcontent = xmlcontent.NextSibling {
+197                 fmt.Println(xmlcontent.Data)
+198                 for n:=xmlcontent.FirstChild;n!=nil;n=n.NextSibling{
+199                         //fmt.Println(n)
+200                         fmt.Println(n.Data) // Ouptut name: ArraySize,v89BNZMpdlWXkuv,v89N83oCrGhI7jh
+201                         //fmt.Println(n.InnerText())// Value of child-node.
+202                 }
+203
+204
+205                 //fmt.Println(xmlcontent.Data)
+206                 //fmt.Println(xmlcontent.InnerText())
+207
+208                 get_xmlcontent := xmlcontent.InnerText()
+209                 get_xmltag := xmlcontent.OutputXML(true)
+210
+211                 trim_xmlcontent := strings.TrimSpace(get_xmlcontent)
+212                 rminnertab := regexp.MustCompile("\t")
+213                 content_rminnertab := rminnertab.ReplaceAllString(trim_xmlcontent, "")
+214                 check := checkstring(content_rminnertab)
+215
+216                 if check == true  {
+217
+218                         //An dieser Stelle alle Elemente und vllt der Tag Ausgabe soll die Zuweisung sein.
+219                         //fmt.Printf("%s\n", content_rminnertab)
+220                         printtagname(get_xmltag)
+221
+222                         //ifmt.Printf("%s\n", content_rminnertab)
+223
+224                 } else if check == false {
+225
+226                 }
+227         }
+228 }
+
+
+
+
+
+168         //fmt.Printf("\nget_tag: \n%s\n", get_tag)
+169         //fmt.Printf("\nget_tag_length: \n%d\n", len(get_tag))
+170
+171         /*
+172         fmt.Printf("\n%s\n", tag)
+173         fmt.Printf("\n%d\n", len(tag))
+174         */
+175
+176         /*
+177         if len(tagname) >= 4 {
+178         fmt.Printf("\n%s %si %s\n", tagname[0])
+179         }
+180
+181         if len(tagname) == 3 {
+182         brackets := regexp.MustCompile("((<.*?>.*?</.*?>))")
+183         fmt.Printf("\n%s\n", tagname[0])
+184         }
+185
+186         fmt.Printf("\n%s\n", tagname)
+
+
+153         //brackets := regexp.MustCompile("((<.*?>))")
+154         /*
+155         brackets := regexp.MustCompile("((<.*?>.*?</.*?>))")
+156         tag := brackets.FindStringSubmatch(get_tag)
+157         rmrightbracket := strings.ReplaceAll(tag[0], ">", " ")
+158         rmleftbracket := strings.ReplaceAll(rmrightbracket, "<", "")
+159         */
+160         //tagname := strings.ReplaceAll(rmleftbracket, "/", " ")
+161         //brackets := regexp.MustCompile("((<.*?>.*?</.*?>))")
+162         //rmslash := strings.ReplaceAll(findslash[0], "/", "")

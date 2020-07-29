@@ -1,0 +1,102 @@
+.header-container {
+	width: 100%;
+	border: 3px solid C42A70;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.kontoinfo-container {
+	width: 100%;
+	border: 3px solid C42A70;
+	background-color: #eee;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.kriterien-container {
+	width: 100%;
+	border: 3px solid C42A70;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.table-container {
+	width: 100%;
+	border: 3px solid C42A70;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.box2 {
+	float: left;
+	padding: 20px;
+    background: #eee;
+	margin-left: auto;
+    margin-right: auto;
+	box-sizing: border-box;
+	width: 30%;
+}
+
+.box3 {
+	float: right;
+	padding: 20px;
+    background: #eee;
+	margin-left: auto;
+    margin-right: auto;
+	box-sizing: border-box;
+	width: 70%;
+}
+
+.box4 {
+	float: left;
+	padding: 20px;
+    background: #eee;
+}
+
+h1 {
+	color: C42A70; 
+	font-family: Arial;	
+}
+
+h3 {
+	font-family: Arial;	
+}
+
+h4 {
+	color: C42A70; 
+	font-family: Arial;	
+}
+
+body {
+	background-color: C189A3;
+}
+
+button {
+	float: center;
+    width: 200px;
+    height: 40px;
+    font-weight: bold;
+    font-size:115%;
+    color: darkmagenta	
+}
+
+table {
+	width: 100%;
+}
+
+table, th, td {
+	border: 1px solid C42A70;
+	font-family: Arial;
+	background: #eee;
+}
+
+th {
+	background-color: BFAAB2;
+	color: #eee;
+}
+
+p {
+	text-align: left;
+	font-family: Arial;
+}
+

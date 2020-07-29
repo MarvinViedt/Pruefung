@@ -1,0 +1,144 @@
+####################################################################################################################################################################
+# Titel:	Entwicklerdokumentation (Read Me) 
+
+# Programm:	CAMT053 - Webservice (Version 1.0)	
+
+# Autor:	Marvin Viedt
+
+# Copyright:	®a.b.s. Rechenzentrum GmbH
+
+# Erstelldatum:	29.05.2020
+####################################################################################################################################################################
+
+Einführung:
+
+Willkommen zum  CAMT053 - Webservice
+
+Dieses Tool wurde für die a.b.s. Rechenzentrum GmbH als Resultat eines Abschlussprojektes einer Ausbildung erstellt.
+
+Sinn und Zweck dieses Tools ist es CAMT053 Datei einzulesen und die darin enthaltenden Daten im Browser darzustellen.
+
+Der CAMT053 Webservice bietet daher zwei Arten von Ansichten an:
+
+	>	Eine Kontoauszugs Ansicht 
+	>	Eine XML Ansicht 
+
+
+####################################################################################################################################################################
+
+Installation:
+
+Um den Webservice auf den lokalen Rechner zu installieren, muss zuerst das Verzeichnis camt053-Webservice entweder auf den Desktop/Verzeichnis kopiert werden.
+
+Der Webservice muss dann über den Befehl ./camt053-Webservice in der Komandozeile (CLI) oder mit doppel klick auf dei Ausführbaredatei (.exe) gestartet werden.
+
+Zusätzliche Argumente werden nicht bei der Eingabe des Befehls nicht benötigt.
+
+####################################################################################################################################################################
+
+Ordnerstruktur:
+
+Innerhalb des Verzeichnisses camt053-Webservice befinden sich folgende relevante .go Dateien:
+
+main.go, webseite.go, XML-View.go und Kontoauszugs-View.go
+
+Diese Dateien beinhalten lediglich den jeweiligen Go-Quellcode für den Webservice 
+
+In den anderen Dateien befindet sich hauptsächlich unbenutzer Code, der während der Entwicklung des Webservice archiviert wurde. 
+
+Die CSS Dateien sind im Verzeichnis static zu finden.
+
+Einige Test CAMT053 Dateien sind im XML Verzeichnis zu finden.
+
+####################################################################################################################################################################
+
+Die Funktionen in Main.go:
+
+Folgende Funktionen die innerhalb der main.go Datei relevant sind:
+
+main: 
+Hauptfunktion des Programms. 
+Hier wird mitgeteilt, dass der Server gestatet wurde und mit den Aufruf der Handlefunc und Handler Methoden wird der Webserver und die Webseiten etabliert.
+Zudem werden die entsprechenden Templates für die Layouts der Webseiten geladen.
+
+handler: 
+Darstellung und Etablierung der Willkommensseite mit dem Eingabefeld 
+Etablierung eines Cookies
+
+kauszughandler: 
+Etablierung und Festlegung der beiden Browseransichten für die CAMT053 Datei
+
+getformvalue: 
+Einlesen des Eingabewertes
+
+checkstring:
+Überprüfung eines Strings ob dieser nur Zahlen, Buchstaben und Newlines enthält.
+
+gettagname:
+Ermitteln und Speicherung eines Tagnamens
+
+getxmlvalues: 
+Ermitteln und Speicherung der Tagnamen und Werte der CAMT053 Datei
+
+readxmlfile: 
+Öffnen und Lesen der CAMT053 Datei
+Festlegung der Startpunkte für den GrpHdr und Stmt Tag zum Durchlaufen der Werte
+Speicherung ermittelten Werte in String Arrays
+Prüfen welche Ansicht angegeben wurde. 
+
+printauszugcontent:
+Speicherung der notwendigen Werte für die Kontoauszugs Ansicht in die Map
+Etablierung des Layouts für die Kontoauszugs Ansicht
+
+printxmlcontent:
+Durchlaufen der Arrays für GrpHdr und Stmt für die Anschließende Ausgabe
+Etablierung des Layouts für die XML Ansicht
+
+remove_empty_value:
+Duchlaufen eines String Arrays
+Entfernen von Leeren Werten aus einem String Array
+
+getdate:
+Umwandlung des Formats für das Datum (2019-03-25 zu 25.03.2019)
+
+
+####################################################################################################################################################################
+
+Todo: 
+Gilt für die Methoden readxmlfile und printauszugscontent
+Durchlaufen  der Untertags von GrpHdr und Stmt 
+Ermitteln der Tagnamen und Werte mit mehreren Schleifen.
+Speicherung der Tagnamen und Werte in einer Map (Tagname, Tagvalue)
+
+####################################################################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+ 

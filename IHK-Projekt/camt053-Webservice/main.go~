@@ -1,0 +1,230 @@
+/*
+##############################################################################################################
+	Projekt: camt053-Webservice
+	Autor: Marvin Viedt
+	Copyright: a.b.s. rechenzentrum GmbH
+	Version: 0.1 (WIP)
+	Release: Sommer 2020
+##############################################################################################################
+*/
+
+package main
+
+import (
+	"fmt"
+	"log"
+	"errors"
+	"net/http"
+	"html/template"
+	"time"
+	"strings"
+	"regexp"
+	//"unicode"
+	"os"
+	"github.com/antchfx/xquery/xml"
+)
+
+func main () {
+
+	log.Println("Server wird gestartet")
+
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/Camt053/", camthandler)
+	err := (http.ListenAndServe(":3000", nil))
+
+	log.Fatal(err)
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+
+	t := template.New("Webservice")
+
+	t, err := t.Parse(webseite)
+
+        expiration := time.Now().Add(10 * time.Second)
+        cookie := http.Cookie{Name: "Test", Value: "test1", Expires: expiration}
+        http.SetCookie(w, &cookie)
+
+        if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
+
+        err = t.Execute(w, nil)
+
+        if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
+}
+
+func camthandler (w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Das ist nicht gültig", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cookie := http.Cookie{Name: "PostTest", Value: "Posttest1"}
+        http.SetCookie(w, &cookie)
+        fmt.Println("CAMT053-Webservice wird ausgeführt")
+
+	xmlfile, err := getxmlfile(r)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Formeingabe(n) konnte(n) nicht geladen oder bearbeitet werden: %s", err), http.StatusBadRequest)
+		return
+        }
+
+	if r.URL.Path == "/Camt053/XML-View" {
+		fmt.Println("Test 1")
+		err = readxmlfile(xmlfile, r)
+		fmt.Println("\nTest 3")
+                if err != nil {
+                        http.Error(w, "Lesen der XML date ist- fehlgeschlagen: ", http.StatusBadRequest)
+                        return
+                }
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func getxmlfile(r *http.Request) (string, error) {
+	err := r.ParseForm()
+
+	if err != nil {
+		log.Println("Error:", err)
+	}
+
+	xmlfile := r.FormValue("XMLFile")
+        fmt.Println(xmlfile)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("Parsen Formfeld Dateiname (XMLFile) fehlgeschlagen: %s", err))
+	}
+
+	return xmlfile, nil
+}
+
+func checkstring(s string) bool {
+
+	if (s >= "A" && s <= "Z") || (s >= "0" && s <= "9") || (s == "\n") {
+		return true
+	}
+
+	return false
+}
+
+func printtagname(get_tag string) string {
+
+
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<< Tagname - Start >>>>>>>>>>>>>>>>>>>>>>>>>>")
+	value := regexp.MustCompile("((<.*?>))")
+
+	tags := value.FindString(get_tag)
+	rmrightbracket := strings.ReplaceAll(tags, ">", "")
+	tagname := strings.ReplaceAll(rmrightbracket, "<", "")
+
+
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<< Tagname - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>")
+	return tagname
+}
+
+func printtagvalues(xmlcontent *xmlquery.Node) {
+
+         for ; xmlcontent != nil; xmlcontent = xmlcontent.NextSibling {
+
+
+
+                 get_xmlcontent := xmlcontent.InnerText()
+                 get_xmltag := xmlcontent.OutputXML(true)
+
+                 trim_xmlcontent := strings.Trim(get_xmlcontent, "\t \n")
+                 rmnewlines := regexp.MustCompile("\n\n\n")
+                 content_rmnewlines := rmnewlines.ReplaceAllString(trim_xmlcontent, "")
+                 rmtab := regexp.MustCompile("\t")
+                 content_rmtab := rmtab.ReplaceAllString(content_rmnewlines, "")
+                 rmspaces2 := regexp.MustCompile("\n\n")
+                 content_rmspaces2 := rmspaces2.ReplaceAllString(content_rmtab, "\n")
+                 rmspaces3 := regexp.MustCompile("\n\n")
+                 content_rmspaces3 := rmspaces3.ReplaceAllString(content_rmspaces2, "\n")
+		/*
+                 rmempty := regexp.MustCompile("\r?\n")
+                 content_rmempty := rmempty.ReplaceAllString(content_rminnertab, " ")
+                 rmspaces := regexp.MustCompile(`\s+`)
+                 content_rmspaces := rmspaces.ReplaceAllString(content_rminnertab, "\n")
+                 //rmnewline := regexp.MustCompile("\r?\n")
+                 //content_rmnewline := rmnewline.ReplaceAllString(content_rmempty, "")
+                */ 
+		check := checkstring(content_rmspaces3)
+
+                 if check == true  {
+
+                         //An dieser Stelle alle Elemente und vllt der Tag Ausgabe soll die Zuweisung sein.
+                         tagname := printtagname(get_xmltag)
+			 tagvaluearr := strings.Fields(tagname+" "+content_rmspaces3)
+			 Map := make(map[string][]string)
+			 Map["xmlarr"] = tagvaluearr
+			 fmt.Println(Map["xmlarr"])
+
+			 for i:=0; i < len(tagvaluearr); i++ {
+				fmt.Printf("%s\n", tagvaluearr[i])
+			 }
+                         //fmt.Printf("%s\n", tagvaluearr)
+                         //fmt.Printf("%s\n", content_rmspaces3)
+
+                 } else if check == false {
+
+                 }
+         }
+}
+
+func readxmlfile(filename string, r *http.Request) error {
+
+	fmt.Println("Test 2\n")
+
+	getxmlcontent, _ := os.Open(filename)
+
+	parsexmlcontent, err := xmlquery.Parse(getxmlcontent)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("-----------------------------------------------------------------")
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<< GRPHDR - Start >>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+	grphdr := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt/GrpHdr/MsgId")
+	printtagvalues(grphdr)
+
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<< GRPHDR - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< STMT - Start >>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+	stmt := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt/Stmt/Id")
+	printtagvalues(stmt)
+
+	fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< STMT - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>>")
+	fmt.Println("-----------------------------------------------------------------")
+	
+	return nil
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

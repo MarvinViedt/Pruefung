@@ -1,0 +1,1141 @@
+/*
+##############################################################################################################
+	Projekt: camt053-Webservice
+	Autor: Marvin Viedt
+	Copyright: a.b.s. rechenzentrum GmbH
+	Version: 0.1 (WIP)
+	Release: Sommer 2020
+##############################################################################################################
+*/
+
+package main
+
+import (
+	"fmt"
+	"encoding/xml"
+	"log"
+	"errors"
+	"net/http"
+	"html/template"
+	"time"
+	//"os"
+	"io"
+        "regexp"
+	//"strconv"
+	"strings"
+	"io/ioutil"
+)
+
+type Document struct {
+        XMLName		xml.Name `xml:"Document"`
+        Text		string   `xml:",chardata"`
+	Xmlns		string   `xml:"xmlns,attr"`
+	Xsi		string   `xml:"xsi,attr"`
+	BkToCstmrStmt	BkToCstmrStmt `xml:"BkToCstmrStmt"`
+}
+
+type BkToCstmrStmt struct {
+        XMLName		xml.Name `xml:"BkToCstmrStmt"`
+	Text		string `xml:",chardata"`
+        GrpHdr		GrpHdr `xml:"GrpHdr"`
+        Stmt		Stmt `xml:"Stmt"`
+}
+
+type GrpHdr struct {
+        XMLName		xml.Name `xml:"GrpHdr"`
+        Text		string `xml:",chardata"`
+        MsgId		string `xml:"MsgId"`
+        CreDtTm		string `xml:"CreDtTm"`
+        MsgRcpt		MsgRcpt `xml:"MsgRcpt"`
+        MsgPgntn	MsgPgntn `xml:"MsgPgntn"`
+}
+
+type MsgRcpt struct {
+        XMLName		xml.Name `xml:"MsgRcpt"`
+        Text		string `xml:",chardata"`
+        Nm		string `xml:"Nm"`
+        PstlAdr		PstlAdr `xml:"PstlAdr"`
+}
+
+type PstlAdr struct {
+        XMLName		xml.Name `xml:"PstlAdr"`
+        Text		string `xml:",chardata"`
+        AdrLine		[]string `xml:"AdrLine"`
+}
+
+type MsgPgntn struct {
+        XMLName		xml.Name `xml:"MsgPgntn"`
+        Text		string `xml:",chardata"`
+        PgNb		string `xml:"PgNb"`
+        LastPgInd	string `xml:"LastPgInd"`
+}
+
+type Stmt struct {
+        XMLName		xml.Name `xml:"Stmt"`
+        Text		string `xml:",chardata"`
+        Id		string `xml:"Id"`
+        ElctrncSeqNb    string `xml:"ElctrncSeqNb"`
+        CreDtTm		string `xml:"CreDtTm"`
+        FrToDt		FrToDt `xml:"FrToDt"`
+        Acct		Acct `xml:"Acct"`
+        Bal		Bal `xml:"Bal"`
+        Ntry		Ntry `xml:"Ntry"`
+}
+
+type FrToDt struct {
+        XMLName		xml.Name `xml:"FrToDt"`
+        Text		string `xml:",chardata"`
+	FrDtTm		string `xml:"FrDtTm"`
+	ToDtTm		string `xml:"ToDtTm"`
+}
+
+type Acct struct {
+        XMLName		xml.Name `xml:"Acct"`
+        Text		string `xml:",chardata"`
+        Id		Id `xml:"Id"`
+        Ccy		string `xml:"Ccy"`
+        Ownr		Ownr `xml:"Ownr"`
+        Svcr		Svcr `xml:"Svcr"`
+}
+
+type Id struct {
+        XMLName		xml.Name `xml:"Id"`
+        Text		string `xml:",chardata"`
+        IBAN		string  `xml:"IBAN"`
+        PrvId		[]PrvId `xml:"PrvId"`
+}
+
+type Ownr struct {
+        XMLName		xml.Name `xml:"Ownr"`
+        Text		string `xml:",chardata"`
+        Nm		string  `xml:"Nm"`
+        PstlAdr		PstlAdr `xml:"PstlAdr"`
+}
+
+type Svcr struct {
+        XMLName		xml.Name `xml:"Svcr"`
+        Text		string `xml:",chardata"`
+        FinInstnId	FinInstnId `xml:"FinInstnId"`
+}
+
+type FinInstnId struct {
+        XMLName		xml.Name `xml:"FinInstnId"`
+        Text		string `xml:",chardata"`
+	BIC		string  `xml:"BIC"`
+	Nm		string  `xml:"Nm"`
+        Othr		Othr `xml:"Othr"`
+}
+
+type Othr struct {
+        XMLName		xml.Name `xml:"Othr"`
+        Text		string `xml:",chardata"`
+	Id		string  `xml:"Id"`
+	Issr		string  `xml:"Issr"`
+}
+
+type Bal struct {
+        XMLName		xml.Name `xml:"Bal"`
+        Text		string `xml:",chardata"`
+        Tp		Tp `xml:"Tp"`
+        Amt		Amt `xml:"Amt"`
+	CdtDbtInd	string `xml:"CdtDbtInd"`
+        Dt		Dt `xml:"Dt"`
+}
+
+type Tp struct {
+        XMLName		xml.Name `xml:"Tp"`
+        Text		string `xml:",chardata"`
+        Prtry		Prtry `xml:"Prtry"`
+        CdOrPrtry	CdOrPrtry `xml:"CdOrPrtry"`
+}
+
+type CdOrPrtry struct {
+        XMLName		xml.Name `xml:"CdOrPrtry"`
+        Text		string `xml:",chardata"`
+	Cd		string  `xml:"Cd"`
+}
+
+type Amt struct {
+        XMLName		xml.Name `xml:"Amt"`
+        Text		string `xml:",chardata"`
+	Ccy		string `xml:"Ccy,attr"`
+}
+
+type Dt struct {
+        XMLName		xml.Name `xml:"Dt"`
+        Text		string `xml:",chardata"`
+	Dt		string  `xml:"Dt"`
+}
+
+type Ntry struct {
+        XMLName		xml.Name `xml:"Ntry"`
+        Text		string `xml:",chardata"`
+        Amt		Amt `xml:"Amt"`
+	CdtDbtInd	string  `xml:"CdtDbtInd"`
+	Sts		string  `xml:"Sts"`
+        BookgDt		BookgDt `xml:"BookgDt"`
+        ValDt		ValDt `xml:"ValDt"`
+	AcctSvcrRef     string  `xml:"AcctSvcrRef"`
+        BkTxCd		BkTxCd `xml:"BkTxCd"`
+        NtryDtls	NtryDtls `xml:"NtryDtls"`
+	AddtlNtryInf    string  `xml:"AddtlNtryInf"`
+}
+
+type BookgDt struct {
+        XMLName		xml.Name `xml:"BookgDt"`
+        Text		string `xml:",chardata"`
+	Dt		string  `xml:"Dt"`
+}
+
+type ValDt struct {
+        XMLName		xml.Name `xml:"ValDt"`
+        Text		string `xml:",chardata"`
+	Dt		string  `xml:"Dt"`
+}
+
+type BkTxCd struct {
+        XMLName		xml.Name `xml:"BkTxCd"`
+        Text		string `xml:",chardata"`
+        Domn		Domn `xml:"Domn"`
+        Prtry		Prtry `xml:"Prtry"`
+}
+
+type Domn struct {
+        XMLName		xml.Name `xml:"Domn"`
+        Text		string `xml:",chardata"`
+	Cd		string  `xml:"Cd"`
+        Fmly		Fmly `xml:"Fmly"`
+}
+
+type Fmly struct {
+        XMLName		xml.Name `xml:"Fmly"`
+        Text		string `xml:",chardata"`
+	Cd		string  `xml:"Cd"`
+	SubFmlyCd       string  `xml:"SubFmlyCd"`
+}
+
+type Prtry struct {
+        XMLName		xml.Name `xml:"Prtry"`
+        Text		string `xml:",chardata"`
+	Id		string  `xml:"Id"`
+	Cd		string  `xml:"Cd"`
+	Issr		string  `xml:"Issr"`
+}
+
+type NtryDtls struct {
+        XMLName		xml.Name `xml:"NtryDtls"`
+        Text		string `xml:",chardata"`
+        TxDtls		TxDtls `xml:"TxDtls"`
+}
+
+type TxDtls struct {
+        XMLName		xml.Name `xml:"TxDtls"`
+        Text		string `xml:",chardata"`
+        Refs		Refs `xml:"Refs"`
+        AmtDtls		AmtDtls `xml:"AmtDtls"`
+        BkTxCd		BkTxCd `xml:"BkTxCd"`
+        Chrgs		Chrgs `xml:"Chrgs"`
+        RltdPties	RltdPties `xml:"RltdPties"`
+        RltdAgts	RltdAgts `xml:"RltdAgts"`
+        RmtInf		RmtInf `xml:"RmtInf"`
+        RtrInf		RtrInf `xml:"RtrInf"`
+}
+
+type Refs struct {
+        XMLName		xml.Name `xml:"Refs"`
+        Text		string `xml:",chardata"`
+	EndToEndId      string  `xml:"EndToEndId"`
+	TxId		string  `xml:"TxId"`
+	MndtId		string  `xml:"Mndt"`
+	ClrSysRef       string  `xml:"ClrSysRef"`
+}
+
+type AmtDtls struct {
+        XMLName		xml.Name `xml:"AmtDtls"`
+        Text		string `xml:",chardata"`
+        InstdAmt	InstdAmt `xml:"InstdAmt"`
+        TxAmt		TxAmt `xml:"TxAmt"`
+        PrtryAmt	PrtryAmt `xml:"PrtryAmt"`
+}
+
+type InstdAmt struct {
+        XMLName		xml.Name `xml:"InstdAmt"`
+        Text		string `xml:",chardata"`
+        Amt		Amt `xml:"Amt"`
+}
+
+type TxAmt struct {
+        XMLName		xml.Name `xml:"TxAmt"`
+        Text		string `xml:",chardata"`
+        Amt		Amt `xml:"Amt"`
+}
+
+type PrtryAmt struct {
+        XMLName		xml.Name `xml:"PrtryAmt"`
+        Text		string `xml:",chardata"`
+        Amt		Amt `xml:"Amt"`
+}
+
+type Chrgs struct {
+        XMLName		xml.Name `xml:"Chrgs"`
+        Text		string `xml:",chardata"`
+        Amt		Amt `xml:"Amt"`
+        Tp		Tp `xml:"Tp"`
+        Pty		Pty `xml:"Pty"`
+}
+
+type Pty struct {
+        XMLName		xml.Name `xml:"Pty"`
+        Text		string `xml:",chardata"`
+        FinInstnId	FinInstnId `xml:"FinInstnId"`
+}
+
+type RltdPties struct {
+        XMLName		xml.Name `xml:"RltdPties"`
+        Text		string `xml:",chardata"`
+        Dbtr		Dbtr `xml:"Dbtr"`
+        DbtrAcct	DbtrAcct `xml:"DbtrAcct"`
+        Cdtr		Cdtr `xml:"Cdtr"`
+        CdtrAcct	CdtrAcct `xml:"CdtrAcct"`
+}
+
+type Dbtr struct {
+        XMLName		xml.Name `xml:"Dbtr"`
+        Text		string `xml:",chardata"`
+	Nm		string `xml:"Nm"`
+}
+
+type DbtrAcct struct {
+        XMLName		xml.Name `xml:"DbtrAcct"`
+        Text		string `xml:",chardata"`
+        Id		Id `xml:"Id"`
+}
+
+type Cdtr struct {
+        XMLName		xml.Name `xml:"Cdtr"`
+        Text		string `xml:",chardata"`
+	Nm		string `xml:"Nm"`
+        Id		Id `xml:"Id"`
+}
+
+type CdtrAcct struct {
+        XMLName		xml.Name `xml:"CdtrAcct"`
+        Text		string `xml:",chardata"`
+        Id		Id `xml:"Id"`
+}
+
+type PrvId struct {
+        XMLName		xml.Name `xml:"PrvId"`
+        Text		string `xml:",chardata"`
+        Othr		Othr `xml:"Othr"`
+}
+
+type RltdAgts struct {
+        XMLName		xml.Name `xml:"RltdAgts"`
+        Text		string `xml:",chardata"`
+}
+
+type DbtrAgt struct {
+        XMLName		xml.Name `xml:"DbtrAgt"`
+        Text		string `xml:",chardata"`
+        FinInstnId	FinInstnId `xml:"FinInstnId"`
+}
+
+type CdtrAgt struct {
+        XMLName		xml.Name `xml:"CdtrAgt"`
+        Text		string `xml:",chardata"`
+        FinInstnId	FinInstnId `xml:"FinInstnId"`
+}
+
+type RmtInf struct {
+        XMLName		xml.Name `xml:"RmtInf"`
+        Text		string `xml:",chardata"`
+	Ustrd		string  `xml:"Ustrd"`
+}
+
+type RtrInf struct {
+        XMLName		xml.Name `xml:"RtrInf"`
+        Text		string `xml:",chardata"`
+        Rsn		Rsn `xml:"Rsn"`
+	AddtlInf        string  `xml:"AddtlInf"`
+}
+
+type Rsn struct {
+        XMLName		xml.Name `xml:"Rsn"`
+        Text		string `xml:",chardata"`
+	Cd		string  `xml:"Cd"`
+}
+
+/*
+	Hauptmethode des Programms
+	Hier wird der Server und alle nötigen Vorgänge gestartet.
+*/
+
+func main () {
+
+	log.Println("Server wird gestartet")
+
+	http.HandleFunc("/", handler)
+	http.HandleFunc("/Camt053/", camthandler)
+	err := (http.ListenAndServe(":3000", nil))
+
+	log.Fatal(err)
+}
+
+/*
+	Methode zur Darstellung der Webseite.
+	Hier wird der HTML-Quellcode geparst und der Server auf Fehler geprüft.
+*/
+
+func handler(w http.ResponseWriter, r *http.Request) {
+
+	// Deklarieren der Variablen t mit zuweisen auf die Methode New im http.template.
+        // Hier wird für den Webervice ein template erstellt.
+	t := template.New("Webservice")
+
+        // Deklarieren der Variablen err und Neuzuweisung von t mit Methodenaufruf Parse aus dem http Package.
+        // Hier wird der HTML-Code des Strings webseite eingelesen und vom Browser intepretiert und dargestellt.
+	t, err := t.Parse(webseite)
+
+	// Hier wird ein Cookie gesetzt.
+        expiration := time.Now().Add(10 * time.Second)
+        cookie := http.Cookie{Name: "Test", Value: "test1", Expires: expiration}
+        http.SetCookie(w, &cookie)
+
+        // Fehlerbehandlung der Variablen err mit Fehlerrückgabecode.
+        if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
+
+        // Neuzuweisung der Variablen err mit Methodenaufruf Execute für den http.ResponseWriter.
+        err = t.Execute(w, nil)
+
+        // Fehlerbehandlung der Variablen err mit Fehlerrückgabecode.
+        if err != nil {
+                http.Error(w, err.Error(), http.StatusInternalServerError)
+        }
+}
+
+func camthandler (w http.ResponseWriter, r *http.Request) {
+	//Prüfen ob der Request mit http.Methode nicht übereinstimmt
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Das ist nicht gültig", http.StatusMethodNotAllowed)
+		return
+	}
+
+	cookie := http.Cookie{Name: "PostTest", Value: "Posttest1"}
+        http.SetCookie(w, &cookie)
+        fmt.Println("CAMT053-Webservice wird ausgeführt")
+
+	xmlfile, err := getxmlfile(r)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Formeingabe(n) konnte(n) nicht geladen oder bearbeitet werden: %s", err), http.StatusBadRequest)
+		return
+        }
+
+	if r.URL.Path == "/Camt053/XML-View" {
+		fmt.Println("Test 1")
+		err = readxmlfile(xmlfile, r)
+		fmt.Println("\nTest 3")
+                if err != nil {
+                        http.Error(w, "Lesen der XML date ist- fehlgeschlagen: ", http.StatusBadRequest)
+                        return
+                }
+	}
+
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+func getxmlfile(r *http.Request) (string, error) {
+	err := r.ParseForm()
+
+	if err != nil {
+		log.Println("Error:", err)
+	}
+
+	xmlfile := r.FormValue("XMLFile")
+        fmt.Println(xmlfile)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("Parsen Formfeld Dateiname (XMLFile) fehlgeschlagen: %s", err))
+	}
+
+	return xmlfile, nil
+}
+
+func readxmlfile(filename string, r *http.Request) error {
+	/*
+	file, err := os.Open(filename)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("XML konnte nicht gelesen werden:", err))
+	}
+
+	defer file.Close()
+	*/
+
+	fmt.Println("Test 1\n")
+
+	getcontent, _ := ioutil.ReadFile(filename)
+
+	xmlcontent := string(getcontent)
+
+	readstring := strings.NewReader(xmlcontent)
+	decodestring := xml.NewDecoder(readstring)
+
+	for ;; {
+		tok, err := decodestring.Token()
+		if err != nil {
+			if err != io.EOF {
+				log.Fatal(err)
+			}
+			break
+		}
+		fmt.Printf("%s\n", tok)
+	}
+
+	return nil
+
+	//content, _ := ioutil.ReadAll(file)
+	
+	/*
+	var document Document
+
+	xml.Unmarshal(byteValue, &document)
+
+	fmt.Println(document)
+
+        fmt.Println(filename)
+
+	file, err := os.Open(filename)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("XML konnte nicht gelesen werden:", err))
+	}
+
+	defer file.Close()
+	fmt.Println("Test 2\n")
+
+	byteValue, _ := ioutil.ReadAll(file)
+
+	var document Document
+
+	xml.Unmarshal(byteValue, &document)
+
+	//var arr [45]int
+	//fmt.Println(len(arr))
+	//test := document.BkToCstmrStmt
+	//fmt.Println(string(test[0]))
+
+	//fmt.Println(document.BkToCstmrStmt[0])
+
+	fmt.Println("---GRPHDR---\n")
+	fmt.Println("MsgId: " + document.BkToCstmrStmt.GrpHdr.MsgId)
+	fmt.Println("CreDtTm: " + document.BkToCstmrStmt.GrpHdr.CreDtTm)
+	fmt.Println("Nm: " + document.BkToCstmrStmt.GrpHdr.MsgRcpt.Nm)
+	fmt.Println("AdrLine: " + document.BkToCstmrStmt.GrpHdr.MsgRcpt.PstlAdr.AdrLine[0])
+	fmt.Println("AdrLine: " + document.BkToCstmrStmt.GrpHdr.MsgRcpt.PstlAdr.AdrLine[1])
+	fmt.Println("PgNb: " + document.BkToCstmrStmt.GrpHdr.MsgPgntn.PgNb)
+	fmt.Println("LastPgInd: " + document.BkToCstmrStmt.GrpHdr.MsgPgntn.LastPgInd)
+
+	fmt.Println("\n---Stmt---\n")
+	fmt.Println("Id: " + document.BkToCstmrStmt.Stmt.Id)
+	fmt.Println("ElctrncSeqNb: " + document.BkToCstmrStmt.Stmt.ElctrncSeqNb)
+	fmt.Println("CreDtTm: " + document.BkToCstmrStmt.Stmt.CreDtTm)
+	fmt.Println("FrDtTm: " + document.BkToCstmrStmt.Stmt.FrToDt.FrDtTm)
+	fmt.Println("ToDtTm: " + document.BkToCstmrStmt.Stmt.FrToDt.ToDtTm)
+	fmt.Println("IBAN: " + document.BkToCstmrStmt.Stmt.Acct.Id.IBAN)
+	fmt.Println("Ccy: " + document.BkToCstmrStmt.Stmt.Acct.Ccy)
+	fmt.Println("Nm: " + document.BkToCstmrStmt.Stmt.Acct.Ownr.Nm)
+	fmt.Println("AdrLine: " + document.BkToCstmrStmt.Stmt.Acct.Ownr.PstlAdr.AdrLine[0])
+	fmt.Println("AdrLine: " + document.BkToCstmrStmt.Stmt.Acct.Ownr.PstlAdr.AdrLine[1])
+	fmt.Println("BIC: " + document.BkToCstmrStmt.Stmt.Acct.Svcr.FinInstnId.BIC)
+	fmt.Println("Nm: " + document.BkToCstmrStmt.Stmt.Acct.Svcr.FinInstnId.Nm)
+	fmt.Println("Id: " + document.BkToCstmrStmt.Stmt.Acct.Svcr.FinInstnId.Othr.Id)
+	fmt.Println("Issr: " + document.BkToCstmrStmt.Stmt.Acct.Svcr.FinInstnId.Othr.Issr)
+	fmt.Println("CdOrPrtry: " + document.BkToCstmrStmt.Stmt.Acct.Svcr.FinInstnId.Othr.Issr)
+	fmt.Println("Cd: " + document.BkToCstmrStmt.Stmt.Bal.Tp.CdOrPrtry.Cd)
+	fmt.Println("Amt Ccy: " + document.BkToCstmrStmt.Stmt.Bal.Amt.Ccy)
+	fmt.Println("CdtDbtInd: " + document.BkToCstmrStmt.Stmt.Bal.CdtDbtInd)
+	fmt.Println("Dt: " + document.BkToCstmrStmt.Stmt.Bal.Dt.Dt)
+	fmt.Println("Amt Ccy: " + document.BkToCstmrStmt.Stmt.Ntry.Amt.Ccy)
+	fmt.Println("CdtDbtInd: " + document.BkToCstmrStmt.Stmt.Ntry.CdtDbtInd)
+	fmt.Println("Sts: " + document.BkToCstmrStmt.Stmt.Ntry.Sts)
+	fmt.Println("BookgDt_Dt: " + document.BkToCstmrStmt.Stmt.Ntry.BookgDt.Dt)
+	fmt.Println("ValDt_Dt: " + document.BkToCstmrStmt.Stmt.Ntry.ValDt.Dt)
+	fmt.Println("AcctSvcrRef: " + document.BkToCstmrStmt.Stmt.Ntry.AcctSvcrRef)
+	fmt.Println("BkTxCd-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.BkTxCd.Domn.Cd)
+	fmt.Println("BkTxCd-Fmly-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.BkTxCd.Domn.Fmly.Cd)
+	fmt.Println("BkTxCd-Fmly-SubFmly: " + document.BkToCstmrStmt.Stmt.Ntry.BkTxCd.Domn.Fmly.SubFmlyCd)
+	fmt.Println("BkTxCd-Prtry-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.BkTxCd.Prtry.Cd)
+	fmt.Println("BkTxCd-Prtry-Issr: " + document.BkToCstmrStmt.Stmt.Ntry.BkTxCd.Prtry.Issr)
+	fmt.Println("NtryDtls-TxDtls-Refs-EndToEndId: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Refs.EndToEndId)
+	fmt.Println("NtryDtls-TxDtls-Refs-TxId: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Refs.TxId)
+	fmt.Println("NtryDtls-TxDtls-Refs-Mndtid: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Refs.MndtId)
+	fmt.Println("NtryDtls-TxDtls-Refs-ClrSysRef: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Refs.ClrSysRef)
+	fmt.Println("NtryDtls-TxDtls-AmtDtls-InstdAmt-Amt Ccy: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.AmtDtls.InstdAmt.Amt.Ccy)
+	fmt.Println("NtryDtls-TxDtls-AmtDtls-TxAmt-Amt Ccy: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.AmtDtls.TxAmt.Amt.Ccy)
+	fmt.Println("NtryDtls-TxDtls-AmtDtls-PrtryAmt-Amt Ccy: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.AmtDtls.PrtryAmt.Amt.Ccy)
+	fmt.Println("BkTxCd-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.BkTxCd.Domn.Cd)
+	fmt.Println("BkTxCd-Fmly-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.BkTxCd.Domn.Fmly.Cd)
+	fmt.Println("BkTxCd-Fmly-SubFmly: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.BkTxCd.Domn.Fmly.SubFmlyCd)
+	fmt.Println("BkTxCd-Prtry-Cd: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.BkTxCd.Prtry.Cd)
+	fmt.Println("BkTxCd-Prtry-Issr: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.BkTxCd.Prtry.Issr)
+	fmt.Println("BkTxCd-Prtry-Issr: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Chrgs.Amt.Ccy)
+	fmt.Println("BkTxCd-Prtry-Issr: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Chrgs.Tp.Prtry.Id)
+	fmt.Println("BkTxCd-Prtry-Issr: " + document.BkToCstmrStmt.Stmt.Ntry.NtryDtls.TxDtls.Chrgs.Pty.FinInstnId.BIC)
+	*/
+
+
+
+	/*
+	for i := 0; i < len(document.BkToCstmrStmt); i++ {
+			test := document.BkToCstmrStmt[i].GrpHdr.MsgRcpt.PstlAdr.AdrLine
+			fmt.Println("Test: ", test)
+			if document.BkToCstmrStmt[i] == GrpHdr {
+				fmt.Println("Kekse")
+			}
+	}
+	*/
+
+	/*
+	decoder := xml.NewDecoder(file)
+	log.Println("Test 3")
+	for {
+		// Read tokens from the XML document in a stream.
+		t, err := decoder.Token()
+
+		// If we are at the end of the file, we are done
+		if err == io.EOF {
+			log.Println("The end")
+			break
+		} else if err != nil {
+			log.Fatalf("Error decoding token: %s", err)
+		} else if t == nil {
+			break
+		}
+		switch x := t.(type) {
+			case xml.StartElement:
+				switch x.Name.Local {
+				case "Document":
+					log.Println("Search in Document")
+					var document Document
+					if err = decoder.DecodeElement(&document, &x); err != nil {
+						log.Fatalf("Error decoding item: %s", err)
+					}
+					log.Println(document.Xmlns)
+					log.Println(document.Xsi)
+				case "BkToCstmrStmt":
+					log.Println("Search in BkToCstmrStmt")
+				case "GrpHdr":
+					log.Println("Search in GrpHdr")
+					var grphdr GrpHdr
+					if err = decoder.DecodeElement(&grphdr, &x); err != nil {
+						log.Fatalf("Error decoding item: %s", err)
+					}
+					log.Println(grphdr.MsgId)
+					log.Println(grphdr.CreDtTm)
+					
+				
+			}
+		}
+	}
+	*/
+
+	/*
+	file, err := os.Open(filename)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("XML konnte nicht gelesen werden:", err))
+
+	}
+
+	defer file.Close()
+
+	byteValue, err := ioutil.ReadAll(file)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("XML konnte nicht Unmarshalt werden", err))
+	}
+
+	var camt1 Document
+
+	err = xml.Unmarshal(byteValue, &camt1)
+
+	if err != nil {
+		errors.New(fmt.Sprintf("XML konnte nicht Unmarshalt werden", err))
+	}
+
+	log.Println("XML konnte erfolgreich eingelesen werden.")
+
+
+	fmt.Println(camt1)
+	return nil
+	*/
+}
+
+
+func checkstring(s string) bool {
+
+        if (s >= "A" && s <= "Z") || (s >= "0" && s <= "9") || (s == "\n") {
+                return true
+        }
+
+        return false
+
+        /*
+        _, err := strconv.ParseFloat(s, 64)
+        return err == nil
+        */
+}
+
+
+        for ; grphdr != nil; grphdr = grphdr.NextSibling {
+                if grphdr != nil {
+                        //fmt.Printf("Test: %s\n", grphdr.InnerText())
+                        test := grphdr.InnerText()
+                        /*
+                        for i, ch := range test {
+                                fmt.Printf("%d:%q ", i, ch)
+                        }
+                        */
+                        str := strings.TrimSpace(test)
+                        rmtab := regexp.MustCompile("\t")
+                        strrmtab := rmtab.ReplaceAllString(str, "")
+                        newstr := rmtab.ReplaceAllString(strrmtab, "")
+                        //fmt.Printf("\nstr: %s\n", newstr2)
+                        /*
+                        for i, ch := range newstr2 {
+                                fmt.Printf("str: %d:%q ", i, ch)
+                        }
+                        */
+                        check := checkstring(newstr)
+                        //fmt.Println(checkstring(test))
+                        //fmt.Printf("test: -> %s\n", len(test))
+                        if check == true  {
+                                fmt.Printf("%s\n", newstr)
+                        } else if check == false {
+                        }
+                }
+        }
+
+        /*
+        content :=  grphdr.SelectElement("MsgId")
+        fmt.Printf("MsgId: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("CreDtTm")
+        fmt.Printf("CredtTm: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("MsgRcpt/Nm")
+        fmt.Printf("Nm: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("MsgRcpt/PstlAdr/AdrLine")
+        fmt.Printf("AdrLine: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("MsgRcpt/PstlAdr/AdrLine[2]")
+        fmt.Printf("AdrLine: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("MsgPgntn/PgNb")
+        fmt.Printf("PgNb: %s\n", content.InnerText())
+        content =  grphdr.SelectElement("MsgPgntn/LastPgInd")
+        fmt.Printf("LastPgInd: %s\n", content.InnerText())
+        */
+
+        fmt.Println("\n<<<<<<<<<<<<<<<<<<<<<<< GRPHDR - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+        fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< STMT - Start >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+
+        content :=  stmt.SelectElement("Id")
+        fmt.Printf("Id: %s\n", content.InnerText())
+        content =  stmt.SelectElement("ElctrncSeqNb")
+        fmt.Printf("ElctrncSeqNb: %s\n", content.InnerText())
+        content =  stmt.SelectElement("CreDtTm")
+        fmt.Printf("CreDtTm: %s\n", content.InnerText())
+        content =  stmt.SelectElement("FrToDt/FrDtTm")
+        fmt.Printf("FrDtTm: %s\n", content.InnerText())
+        content =  stmt.SelectElement("FrToDt/ToDtTm")
+        fmt.Printf("ToDtTm: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Id/IBAN")
+        fmt.Printf("IBAN: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Ccy")
+        fmt.Printf("Ccy: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Ownr/Nm")
+        fmt.Printf("Nm: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Ownr/PstlAdr/AdrLine")
+        fmt.Printf("AdrLine: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Ownr/PstlAdr/AdrLine[2]")
+        fmt.Printf("AdrLine: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Svcr/FinInstnId/BIC")
+        fmt.Printf("BIC: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Svcr/FinInstnId/Nm")
+        fmt.Printf("Nm: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Svcr/FinInstnId/Othr/Id")
+        fmt.Printf("Id: %s\n", content.InnerText())
+        content =  stmt.SelectElement("Acct/Svcr/FinInstnId/Othr/Issr")
+        fmt.Printf("Issr: %s\n", content.InnerText())
+
+        bal_ntry := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt/Stmt/Bal")
+
+        //for ; bal_ntry != nil; bal_ntry = bal_ntry.NextSibling {
+        for ; false; bal_ntry = bal_ntry.NextSibling {
+
+                        /*
+                        if bal == ntry {
+
+                                break
+
+                        }
+                        */
+
+                        bal_ntrycontent :=  bal_ntry.SelectElement("Tp/CdOrPrtry/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("Amt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Amt-Ccy: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("CdtDbtInd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("CdtDbtInd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("Dt/Dt[1]")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Dt: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("Sts")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-Sts: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BookgDt/Dt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BoogDt-Dt: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("ValDt/Dt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-ValDt-Dt: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("AcctSvcrRef")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-AcctSvcrRef: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BkTxCd/Domn/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BkTXCd-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BkTxCd/Domn/Fmly/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BkTXCd-Fmly-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BkTxCd/Domn/Fmly/SubFmlyCd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BkTXCd-Fmly-SubFmlyCd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BkTxCd/Domn/Prtry/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BkTXCd-Prtry-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("BkTxCd/Domn/Prtry/Issr")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("Ntry-BkTXCd-Prtry-Issr: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Refs/EndToEndId")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-EndToEndId: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Refs/TxId")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-TxId: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Refs/MndtId")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-MndtId: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Refs/ClrSysRef")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-ClrSysRef: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/AmtDtls/InstAmt/Amt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-InstAmt-Amt-Ccy: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/AmtDtls/TxAmt/Amt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-TxAmt-Amt-Ccy: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/AmtDtls/PrtryAmt/Tp")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-PrtryAmt-Tp: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/AmtDtls/PrtryAmt/Amt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-PrtryAmt-Amt-Ccy: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/BkTxCd/Domn/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-BkTxCd-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/BkTxCd/Domn/Fmly/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-BkTxCd-Fmly-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/BkTxCd/Domn/Fmly/SubFmlyId")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-BkTxCd-Fmly-SubFmlyId: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/BkTxCd/Prtry/Cd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-BkTxCd-Prtry-Cd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/BkTxCd/Prtry/Issr")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-BkTxCd-Prtry-Issr: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Amt")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-Chrgs-Amt-Ccy: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Tp/Prtry/Id")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-Chrgs-Id: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/Pty/FinInstnId/BIC")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-Chrgs-BIC: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdPties/Dbtr/Nm")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdPties-Nm: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdPties/DbtrAcct/Id/IBAN")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdPties-IBAN: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdPties/Cdtr/Nm")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdPties-Cdtr-Nm: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdPties/Cdtr/Id/PrvtId/Othr/Id")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdPties-PrvtId-Id: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdPties/CdtrAcct/Id/IBAN")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdPties-CdtrAcct-IBAN: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdAgts/DbtrAgt/FinInstnId/BIC")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdAgts-DbtrAgt-BIC: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RltdAgts/CdtrAgt/FinInstnId/BIC")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdAgts-CdtrAgt-BIC: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RmtInf/Ustrd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RmtInf-Ustrd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("AddtlNtryInf")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RltdAgts-CdtrAgt-BIC: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("NtryDtls/TxDtls/RmtInf/Ustrd")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("NtryDtls-RmtInf-Ustrd: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+
+                        bal_ntrycontent =  bal_ntry.SelectElement("AddtlNtryInf")
+                        if bal_ntrycontent != nil {
+
+                                fmt.Printf("AddtlNtryInf: %s\n", bal_ntrycontent.InnerText())
+
+                        }
+        }
+
+        fmt.Println("\n<<<<<<<<<<<<<<<<<<<<<<<< STMT - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+        fmt.Println("-----------------------------------------------------------------")
+
+        return nil
+
+
+        fmt.Println("-----------------------------------------------------------------")
+        fmt.Println("<<<<<<<<<<<<<<<<<<<<<<< GRPHDR - Start >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+
+        grphdr := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt/GrpHdr/MsgId")
+
+        for ; grphdr != nil; grphdr = grphdr.NextSibling {
+
+                get_grphdr_content := grphdr.InnerText()
+                trim_grphdr_content := strings.TrimSpace(get_grphdr_content)
+                rminnertab := regexp.MustCompile("\t")
+                content_rminnertab := rminnertab.ReplaceAllString(trim_grphdr_content, "")
+                check := checkstring(content_rminnertab)
+
+                if check == true  {
+
+                        //An dieser Stelle alle Elemente und vllt der Tag Ausgabe soll die Zuweisung sein.
+                        fmt.Printf("%s\n", content_rminnertab)
+
+                } else if check == false {
+
+                }
+        }
+
+        fmt.Println("\n<<<<<<<<<<<<<<<<<<<<<<< GRPHDR - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+        fmt.Println("<<<<<<<<<<<<<<<<<<<<<<<< STMT - Start >>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+
+        stmt := xmlquery.FindOne(parsexmlcontent, "//BkToCstmrStmt/Stmt/Id")
+
+        for ; stmt != nil; stmt = stmt.NextSibling {
+
+                get_stmt_content := stmt.InnerText()
+                trim_stmt_content := strings.TrimSpace(get_stmt_content)
+                rminnertab := regexp.MustCompile("\t")
+                content_rminnertab := rminnertab.ReplaceAllString(trim_stmt_content, "")
+                check := checkstring(content_rminnertab)
+
+                if check == true  {
+
+                        fmt.Printf("%s\n", content_rminnertab)
+
+                } else if check == false {
+
+                }
+        }
+
+        fmt.Println("\n<<<<<<<<<<<<<<<<<<<<<<<< STMT - Ende >>>>>>>>>>>>>>>>>>>>>>>>>>>")
+
+        fmt.Println("-----------------------------------------------------------------")
+
+
+	//fmt.Printf("%s\n", test)
+
+	//fmt.Println(get_xmltagname)
+
+	//tag := test2.FindStringSubmatch(get_xmltagname)
+	//fmt.Printf("\n%s\n", tag[1])
+
+	/*
+	   rmbrackets := regexp.MustCompile("<")
+	   tagname := rmbrackets.ReplaceAllString(tag[1], "")
+	   rmbrackets = regexp.MustCompile(">")
+	   tagname = rmbrackets.ReplaceAllString(tag[1], "")
+	 */
+
+
+
+
+

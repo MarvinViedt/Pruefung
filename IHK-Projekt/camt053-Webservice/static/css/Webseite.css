@@ -1,0 +1,78 @@
+.header-container {
+	width: 100%;
+	border: 3px solid C42A70;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.container {
+	width: 100%;
+	margin-left: auto;
+    margin-right: auto;
+}
+
+.box {
+	float: left;
+	padding: 20px;
+    background: #eee;
+	margin-left: auto;
+    margin-right: auto;
+	box-sizing: border-box;
+	width: 30%;
+}
+
+.box3 {
+	float: right;
+	padding: 20px;
+    background: #eee;
+	margin-left: auto;
+    margin-right: auto;
+	box-sizing: border-box;
+	width: 70%;
+}
+
+button {
+	float: center;
+    width: 300px;
+    height: 40px;
+    font-weight: bold;
+    font-size:115%;
+    color: darkmagenta	
+}
+
+legend {
+	color: C42A70; 
+	font-family: Arial;	
+}
+
+fieldset {
+	border: 1px solid C42A70;
+	font-family: Arial;	
+}
+
+label {
+	color: black; 
+	font-style: Bold;
+	font-size: 83%;
+	font-family: Arial;	
+}
+
+h1 {
+	color: C42A70; 
+	font-family: Arial;	
+}
+
+h4 {
+	color: C42A70; 
+	font-family: Arial;	
+}
+
+body {
+	background-color: C189A3;
+}
+
+p {
+	text-align: left;
+	font-family: Arial;
+}
+
